@@ -40,6 +40,9 @@ Class RealestateSpider(scrapy.Spider)
       yield response.follow(url=details_link, callback=self.parse_detail)
       
       # Loader
+      loader = ItemLoader(item=PropertiesscrapyItem(),selector=ads,response=response)
+      loader.add_xpath("price",".//span[@class='result-price']/text()")
+      loader.add_xpath("")
 
    # Nav next page
 
