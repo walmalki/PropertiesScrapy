@@ -1,0 +1,79 @@
+''' Scrapes approx 3000 properties on Craigslist
+and get geo data from details page '''
+
+from gc import callbacks
+import os
+import scrapy
+from scrapy.loader import ItemLoader
+from scrapy.crawler import CrawlerProcess
+from items import CraigslistscrapeItem
+
+# Creating the Class
+Class RealestateSpider(scrapy.Spider) :
+
+   name = 'realestate_loader'
+
+   start_url = ['https://newyork.craigslist.org/search/rea/']
+
+   try:
+      os.remove('results.csv')
+   except: OSError:
+      pass
+
+   def __init__(self):
+      self.lat = ""
+      self.lon = ""
+
+   def start_requests(self):
+      yield scrapy.Request('https://newyork.craigslist.org/search/rea/', callback=self.parse)
+
+   def parse(self, response):
+      all_ads = response.xpath('//div[@class="result-info"]')
+
+      for ads in all_ads:
+
+         # Get details link
+         details_link = ads.xpath('.//li[@class="result-row"]/a/@href').get()
+
+         # Go get geo data
+         yield response.follow(url=details_link, callback=self.parse_detail)
+         
+         # Loader
+         loader = ItemLoader(item=PropertiesscrapyItem(), selector=ads, response=response)
+         
+         loader.add_xpath("price",".//span[@class='result-price']/text()")
+         loader.add_xpath("date", ".//time[@class='result-date']/text()")
+         loader.add_xpath("title", ".//a[@class='result-title hdlnk']/text()")
+         loader.add_xpath("hood", ".//span[@class='result-hood']/text()")
+         loader.add_xpath("details_link", ".//a[@class='result-title hdlnk']/@href")
+         loader.add_value("lon", self.lon)
+         loader.add_value("lat", self.lat)
+         yield loader.load_item()
+
+      # Nav next page
+      #Get the next 25 properties from 'next page' - persist until no more.
+      next_page = response.xpath("//a[@class='button next']/@href").get()
+      if next_page:
+         yield response.follow(url=next_page, callback=self.parse)
+
+   def parse_detail(self, response):
+      # Set variable to response lon and latest
+      self.lon = response.xpath('//meta[@name="geo.position"]/@content').get().split(';')[0]
+      self.lat = response.xpath('//meta[@name="geo.position"]/@content').get().split(';')[1]
+
+# main driver 
+if __name__ == __main__:
+   # create instance called 'cl' as in "C"raigs "L"ist
+   cl = CrawlerProcess(settings={
+      "FEEDS": {
+         "results.csv": {"format": "CSV"}
+      }
+   })
+
+   cl.crawl(RealestateSpider)
+   cl.start()
+
+
+
+
+

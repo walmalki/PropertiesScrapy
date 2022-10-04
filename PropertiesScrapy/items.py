@@ -13,7 +13,7 @@ class PropertiesscrapyItem(scrapy.Item):
     title = scrapy.Field()
     price = scrapy.Field()
     hood = scrapy.Field()
-    link = scrapy.Field()
+    details_link = scrapy.Field()
     misc = scrapy.Field()
     lon = scrapy.Field()
     lat = scrapy.Field()
